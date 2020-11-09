@@ -158,7 +158,7 @@ class CpStockChart:
 
         self.objStockChart.SetInputValue(6, dwm)  # '차트 주기 - 분/틱
         self.objStockChart.SetInputValue(7, tick_range)  # 분틱차트 주기
-        self.objStockChart.SetInputValue(9, ord('1'))  # 수정주가 사용
+        self.objStockChart.SetInputValue(9, ord('0'))  # 수정주가 사용
 
         rcv_data = {}
         for col in rq_column:

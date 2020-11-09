@@ -94,7 +94,7 @@ class CreonDatareaderCLI:
             count = 200000  # 서버 데이터 최대 reach 약 18.5만 이므로 (18/02/25 기준)
             tick_range = 1
         elif tick_unit == '5min':
-            count = 100000
+            count = 200000
             tick_range = 5
         elif tick_unit == 'day':
             count = 10000  # 10000개면 현재부터 1980년 까지의 데이터에 해당함. 충분.
