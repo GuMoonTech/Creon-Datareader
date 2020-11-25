@@ -254,11 +254,6 @@ class CpFutureCode:
                     code_name.append(name)
         return code_list, code_name
 
-
-        code_list.append("1{}00".format(i))
-
-        return ["10100", "10600"]
-
     # 종목 코드를 받아 종목명을 반환하는 메소드
     def get_code_name(self, code):
         code_name = self.objFutreCode.CodeToName(code)
