@@ -25,7 +25,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.objStockChart = creonAPI.CpStockChart()
+        self.objStockChart = creonAPI.CpChart()
         self.objCodeMgr = creonAPI.CpCodeMgr()
 
         self.rcv_data = dict()  # RQ후 받아온 데이터 저장 멤버

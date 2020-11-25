@@ -12,19 +12,26 @@ from utils import is_market_open, available_latest_date, preformat_cjk
 
 
 class CreonDatareaderCLI:
-    def __init__(self):
-        self.objStockChart = creonAPI.CpStockChart()
-        self.objCodeMgr = creonAPI.CpCodeMgr()
+    def __init__(self, product_type="stock"):
+        self.objChart = creonAPI.CpChart(product_type=product_type)
         self.rcv_data = dict()  # RQ후 받아온 데이터 저장 멤버
 
         self.sv_code_df = pd.DataFrame()
         self.db_code_df = pd.DataFrame()
 
-        sv_code_list = self.objCodeMgr.get_code_list(1) + self.objCodeMgr.get_code_list(2)
-        sv_name_list = list(map(self.objCodeMgr.get_code_name, sv_code_list))
-        self.sv_code_df = pd.DataFrame({'종목코드': sv_code_list,'종목명': sv_name_list},
+        if product_type == "stock":
+            self.objCodeMgr = creonAPI.CpCodeMgr()
+            sv_code_list = self.objCodeMgr.get_code_list(1) + self.objCodeMgr.get_code_list(2)
+            sv_name_list = list(map(self.objCodeMgr.get_code_name, sv_code_list))
+        elif product_type == "future":
+            self.objCodeMgr = creonAPI.CpFutureCode()
+            sv_code_list, sv_name_list = self.objCodeMgr.get_code_list_and_name()
+        elif product_type == "option":
+            raise NotImplementedError
+
+        self.sv_code_df = pd.DataFrame({'종목코드': sv_code_list, '종목명': sv_name_list},
                                        columns=('종목코드', '종목명'))
-    
+
     def update_price_db(self, db_path, tick_unit='day', ohlcv_only=False):
         """
         db_path: db 파일 경로.
@@ -58,15 +65,15 @@ class CreonDatareaderCLI:
 
             # 날짜가 분 단위 인 경우
             if date0[0] > 99999999:
-                if date1[0] - date0[0] == 5: # 5분 간격인 경우
+                if date1[0] - date0[0] == 5:  # 5분 간격인 경우
                     tick_unit = '5min'
-                else: # 1분 간격인 경우
+                else:  # 1분 간격인 경우
                     tick_unit = '1min'
-            elif date0[0]%100 == 0: # 월봉인 경우
+            elif date0[0] % 100 == 0:  # 월봉인 경우
                 tick_unit = 'month'
-            elif date0[0]%10 == 0: # 주봉인 경우
+            elif date0[0] % 10 == 0:  # 주봉인 경우
                 tick_unit = 'week'
-            else: # 일봉인 경우
+            else:  # 일봉인 경우
                 tick_unit = 'day'
 
             # column개수로 ohlcv_only 여부 확인
@@ -87,7 +94,7 @@ class CreonDatareaderCLI:
             if tick_unit == 'day':
                 latest_date = latest_date // 10000
             # 이미 DB 데이터가 최신인 종목들은 가져올 목록에서 제외한다
-            already_up_to_date_codes = db_code_df.loc[db_code_df['갱신날짜']==latest_date]['종목코드'].values
+            already_up_to_date_codes = db_code_df.loc[db_code_df['갱신날짜'] == latest_date]['종목코드'].values
             fetch_code_df = fetch_code_df.loc[fetch_code_df['종목코드'].apply(lambda x: x not in already_up_to_date_codes)]
 
         if tick_unit == '1min':
@@ -105,10 +112,10 @@ class CreonDatareaderCLI:
             count = 500
 
         if ohlcv_only:
-            columns=['open', 'high', 'low', 'close', 'volume']
+            columns = ['open', 'high', 'low', 'close', 'volume']
         else:
-            columns=['open', 'high', 'low', 'close', 'volume',
-                     '상장주식수', '외국인주문한도수량', '외국인현보유수량', '외국인현보유비율', '기관순매수', '기관누적순매수']
+            columns = ['open', 'high', 'low', 'close', 'volume',
+                       '상장주식수', '외국인주문한도수량', '외국인현보유수량', '외국인현보유비율', '기관순매수', '기관누적순매수']
 
         with sqlite3.connect(db_path) as con:
             cursor = con.cursor()
@@ -124,16 +131,17 @@ class CreonDatareaderCLI:
                     from_date = cursor.fetchall()[0][0]
 
                 if tick_unit == 'day':  # 일봉 데이터 받기
-                    if self.objStockChart.RequestDWM(code[0], ord('D'), count, self, from_date, ohlcv_only) == False:
+                    if self.objChart.RequestDWM(code[0], ord('D'), count, self, from_date, ohlcv_only) == False:
                         continue
                 elif tick_unit == '1min' or tick_unit == '5min':  # 분봉 데이터 받기
-                    if self.objStockChart.RequestMT(code[0], ord('m'), tick_range, count, self, from_date, ohlcv_only) == False:
+                    if self.objChart.RequestMT(code[0], ord('m'), tick_range, count, self, from_date,
+                                               ohlcv_only) == False:
                         continue
-                elif tick_unit == 'week':  #주봉 데이터 받기
-                    if self.objStockChart.RequestDWM(code[0], ord('W'), count, self, from_date, ohlcv_only) == False:
+                elif tick_unit == 'week':  # 주봉 데이터 받기
+                    if self.objChart.RequestDWM(code[0], ord('W'), count, self, from_date, ohlcv_only) == False:
                         continue
-                elif tick_unit == 'month':  #주봉 데이터 받기
-                    if self.objStockChart.RequestDWM(code[0], ord('M'), count, self, from_date, ohlcv_only) == False:
+                elif tick_unit == 'month':  # 주봉 데이터 받기
+                    if self.objChart.RequestDWM(code[0], ord('M'), count, self, from_date, ohlcv_only) == False:
                         continue
                 df = pd.DataFrame(self.rcv_data, columns=columns, index=self.rcv_data['date'])
 
@@ -156,10 +164,11 @@ def main_cli():
     parser.add_argument('--db_file_path', required=True, type=str)
     parser.add_argument('--tick_unit', required=False, type=str, default='day', help='{1min, 5min, day, week, month}')
     parser.add_argument('--ohlcv_only', required=False, type=int, default=0, help='0: False, 1: True')
+    parser.add_argument('--product_type', required=False, type=str, default="stock", help='{stock, future, option}')
     args = parser.parse_args()
 
-    creon = CreonDatareaderCLI()
-    creon.update_price_db(args.db_file_path, args.tick_unit, args.ohlcv_only==1)
+    creon = CreonDatareaderCLI(args.product_type)
+    creon.update_price_db(args.db_file_path, args.tick_unit, args.ohlcv_only == 1)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,6 @@ g_objCpStatus = win32com.client.Dispatch('CpUtil.CpCybos')
 
 # original_func 콜하기 전에 PLUS 연결 상태 체크하는 데코레이터
 def check_PLUS_status(original_func):
-
     def wrapper(*args, **kwargs):
         bConnect = g_objCpStatus.IsConnect
         if (bConnect == 0):
@@ -24,9 +23,12 @@ def check_PLUS_status(original_func):
 
 
 # 서버로부터 과거의 차트 데이터 가져오는 클래스
-class CpStockChart:
-    def __init__(self):
-        self.objStockChart = win32com.client.Dispatch("CpSysDib.StockChart")
+class CpChart:
+    def __init__(self, product_type="stock"):
+        if product_type == "stock":
+            self.objStockChart = win32com.client.Dispatch("CpSysDib.StockChart")
+        elif product_type == "future" or product_type == "option":
+            self.objStockChart = win32com.client.Dispatch("CpSysDib.FutOptChart")
 
     def _check_rq_status(self):
         """
@@ -61,21 +63,21 @@ class CpStockChart:
             rq_column = ('date', 'open', 'high', 'low', 'close', 'volume')
         else:
             # 요청항목
-            self.objStockChart.SetInputValue(5, [0, # 날짜
-                                                2, # 시가
-                                                3, # 고가
-                                                4, # 저가
-                                                5, # 종가
-                                                8, # 거래량
-                                                12,  #상장주식수
-                                                14,  # 외국인주문한도수량
-                                                16,  # 외국인현보유수량
-                                                17,  # 외국인현보유비율
-                                                20,  # 기관순매수
-                                                21,  # 기관누적순매수
-                                                ])
+            self.objStockChart.SetInputValue(5, [0,  # 날짜
+                                                 2,  # 시가
+                                                 3,  # 고가
+                                                 4,  # 저가
+                                                 5,  # 종가
+                                                 8,  # 거래량
+                                                 12,  # 상장주식수
+                                                 14,  # 외국인주문한도수량
+                                                 16,  # 외국인현보유수량
+                                                 17,  # 외국인현보유비율
+                                                 20,  # 기관순매수
+                                                 21,  # 기관누적순매수
+                                                 ])
             # 요청한 항목들을 튜플로 만들어 사용
-            rq_column = ('date', 'open', 'high', 'low', 'close', 'volume', 
+            rq_column = ('date', 'open', 'high', 'low', 'close', 'volume',
                          '상장주식수', '외국인주문한도수량', '외국인현보유수량', '외국인현보유비율', '기관순매수', '기관누적순매수')
 
         self.objStockChart.SetInputValue(6, dwm)  # '차트 주기 - 일/주/월
@@ -130,7 +132,10 @@ class CpStockChart:
         :param caller: 이 메소드 호출한 인스턴스. 결과 데이터를 caller의 멤버로 전달하기 위함
         :return:
         """
-        self.objStockChart.SetInputValue(0, code)  # 종목코드
+        try:
+            self.objStockChart.SetInputValue(0, code)  # 종목코드
+        except BaseException:
+            return False
         self.objStockChart.SetInputValue(1, ord('2'))  # 개수로 받기
         self.objStockChart.SetInputValue(4, count)  # 조회 개수
         if ohlcv_only:
@@ -138,22 +143,22 @@ class CpStockChart:
             rq_column = ('date', 'time', 'open', 'high', 'low', 'close', 'volume')
         else:
             # 요청항목
-            self.objStockChart.SetInputValue(5, [0, # 날짜
-                                                1, # 시간
-                                                2, # 시가
-                                                3, # 고가
-                                                4, # 저가
-                                                5, # 종가
-                                                8, # 거래량
-                                                12,  #상장주식수
-                                                14,  # 외국인주문한도수량
-                                                16,  # 외국인현보유수량
-                                                17,  # 외국인현보유비율
-                                                20,  # 기관순매수
-                                                21,  # 기관누적순매수
-                                                ])
+            self.objStockChart.SetInputValue(5, [0,  # 날짜
+                                                 1,  # 시간
+                                                 2,  # 시가
+                                                 3,  # 고가
+                                                 4,  # 저가
+                                                 5,  # 종가
+                                                 8,  # 거래량
+                                                 12,  # 상장주식수
+                                                 14,  # 외국인주문한도수량
+                                                 16,  # 외국인현보유수량
+                                                 17,  # 외국인현보유비율
+                                                 20,  # 기관순매수
+                                                 21,  # 기관누적순매수
+                                                 ])
             # 요청한 항목들을 튜플로 만들어 사용
-            rq_column = ('date', 'time', 'open', 'high', 'low', 'close', 'volume', 
+            rq_column = ('date', 'time', 'open', 'high', 'low', 'close', 'volume',
                          '상장주식수', '외국인주문한도수량', '외국인현보유수량', '외국인현보유비율', '기관순매수', '기관누적순매수')
 
         self.objStockChart.SetInputValue(6, dwm)  # '차트 주기 - 분/틱
@@ -197,10 +202,11 @@ class CpStockChart:
 
         # 분봉의 경우 날짜와 시간을 하나의 문자열로 합친 후 int로 변환
         rcv_data['date'] = list(map(lambda x, y: int('{}{:04}'.format(x, y)),
-                 rcv_data['date'], rcv_data['time']))
+                                    rcv_data['date'], rcv_data['time']))
         del rcv_data['time']
         caller.rcv_data = rcv_data  # 받은 데이터를 caller의 멤버에 저장
         return True
+
 
 # 종목코드 관리하는 클래스
 class CpCodeMgr:
@@ -224,4 +230,36 @@ class CpCodeMgr:
     # 종목 코드를 받아 종목명을 반환하는 메소드
     def get_code_name(self, code):
         code_name = self.objCodeMgr.CodeToName(code)
+        return code_name
+
+
+class CpFutureCode:
+    def __init__(self):
+        self.objFutreCode = win32com.client.Dispatch("CpUtil.CpFutureCode")
+
+    def get_code_list_and_name(self):
+        # 주식선물 기초자산 거래대상물 코드 : 10~59, B0~BZ,...,H0~HZ(I,O,U 제외)
+        code_list = []
+        code_name = []
+        first_digit = ["0", "1", "2", "3", "4", "5", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P",
+                       "Q", "R", "S", "T", "V", "W", "X", "Y", "Z", ]
+        second_digit = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "J",
+                        "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "X", "Y", "Z", ]
+        for first in first_digit:
+            for second in second_digit:
+                code = "1{}00".format(first + second)
+                name = self.get_code_name(code)
+                if name != "":
+                    code_list.append(code)
+                    code_name.append(name)
+        return code_list, code_name
+
+
+        code_list.append("1{}00".format(i))
+
+        return ["10100", "10600"]
+
+    # 종목 코드를 받아 종목명을 반환하는 메소드
+    def get_code_name(self, code):
+        code_name = self.objFutreCode.CodeToName(code)
         return code_name
