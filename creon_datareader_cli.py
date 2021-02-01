@@ -15,7 +15,7 @@ class CreonDatareaderCLI:
     def __init__(self, product_type="stock"):
         self.objChart = creonAPI.CpChart(product_type=product_type)
         self.rcv_data = dict()  # RQ후 받아온 데이터 저장 멤버
-
+        self.product_type = product_type
         self.sv_code_df = pd.DataFrame()
         self.db_code_df = pd.DataFrame()
 
@@ -130,18 +130,23 @@ class CreonDatareaderCLI:
                     cursor.execute("SELECT date FROM {} ORDER BY date DESC LIMIT 1".format(code[0]))
                     from_date = cursor.fetchall()[0][0]
 
+                if self.product_type == "stock":
+                    request_code = code[0]
+                elif self.product_type == "future" or self.product_type == "option":
+                    request_code = code[0][1:6]
+
                 if tick_unit == 'day':  # 일봉 데이터 받기
-                    if self.objChart.RequestDWM(code[0], ord('D'), count, self, from_date, ohlcv_only) == False:
+                    if self.objChart.RequestDWM(request_code, ord('D'), count, self, from_date, ohlcv_only) == False:
                         continue
                 elif tick_unit == '1min' or tick_unit == '5min':  # 분봉 데이터 받기
-                    if self.objChart.RequestMT(code[0], ord('m'), tick_range, count, self, from_date,
+                    if self.objChart.RequestMT(request_code, ord('m'), tick_range, count, self, from_date,
                                                ohlcv_only) == False:
                         continue
                 elif tick_unit == 'week':  # 주봉 데이터 받기
-                    if self.objChart.RequestDWM(code[0], ord('W'), count, self, from_date, ohlcv_only) == False:
+                    if self.objChart.RequestDWM(request_code, ord('W'), count, self, from_date, ohlcv_only) == False:
                         continue
                 elif tick_unit == 'month':  # 주봉 데이터 받기
-                    if self.objChart.RequestDWM(code[0], ord('M'), count, self, from_date, ohlcv_only) == False:
+                    if self.objChart.RequestDWM(request_code, ord('M'), count, self, from_date, ohlcv_only) == False:
                         continue
                 df = pd.DataFrame(self.rcv_data, columns=columns, index=self.rcv_data['date'])
 

@@ -249,6 +249,7 @@ class CpFutureCode:
             for second in second_digit:
                 code = "1{}00".format(first + second)
                 name = self.get_code_name(code)
+                code = "K" + code + "000"
                 if name != "":
                     code_list.append(code)
                     code_name.append(name)
