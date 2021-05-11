@@ -23,7 +23,7 @@ class CreonDatareaderCLI:
             self.objCodeMgr = creonAPI.CpCodeMgr()
             sv_code_list = self.objCodeMgr.get_code_list(1) + self.objCodeMgr.get_code_list(2)
             sv_name_list = list(map(self.objCodeMgr.get_code_name, sv_code_list))
-        elif product_type == "future":
+        elif product_type == "futures":
             self.objCodeMgr = creonAPI.CpFutureCode()
             sv_code_list, sv_name_list = self.objCodeMgr.get_code_list_and_name()
         elif product_type == "option":
@@ -132,7 +132,7 @@ class CreonDatareaderCLI:
 
                 if self.product_type == "stock":
                     request_code = code[0]
-                elif self.product_type == "future" or self.product_type == "option":
+                elif self.product_type == "futures" or self.product_type == "option":
                     request_code = code[0][1:6]
 
                 if tick_unit == 'day':  # 일봉 데이터 받기
@@ -169,7 +169,7 @@ def main_cli():
     parser.add_argument('--db_file_path', required=True, type=str)
     parser.add_argument('--tick_unit', required=False, type=str, default='day', help='{1min, 5min, day, week, month}')
     parser.add_argument('--ohlcv_only', required=False, type=int, default=0, help='0: False, 1: True')
-    parser.add_argument('--product_type', required=False, type=str, default="stock", help='{stock, future, option}')
+    parser.add_argument('--product_type', required=False, type=str, default="stock", help='{stock, futures, option}')
     args = parser.parse_args()
 
     creon = CreonDatareaderCLI(args.product_type)

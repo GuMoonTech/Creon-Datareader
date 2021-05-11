@@ -27,7 +27,7 @@ class CpChart:
     def __init__(self, product_type="stock"):
         if product_type == "stock":
             self.objStockChart = win32com.client.Dispatch("CpSysDib.StockChart")
-        elif product_type == "future" or product_type == "option":
+        elif product_type == "futures" or product_type == "option":
             self.objStockChart = win32com.client.Dispatch("CpSysDib.FutOptChart")
 
     def _check_rq_status(self):
